@@ -1,0 +1,1483 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>מחולל דברי תורה</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root {
+    --gold: #c8a84b;
+    --dark: #1a1a2e;
+    --card: #16213e;
+    --card2: #0f3460;
+    --accent: #e94560;
+    --text: #eaeaea;
+    --muted: #a0a0b8;
+    --success: #4caf8c;
+    --border: rgba(200,168,75,0.3);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', 'Arial', sans-serif;
+    background: linear-gradient(135deg, #0d0d1a 0%, #1a1a2e 50%, #0d1b3e 100%);
+    min-height: 100vh;
+    color: var(--text);
+    direction: rtl;
+  }
+  .stars {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image: radial-gradient(1px 1px at 20% 30%, rgba(255,255,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 80% 10%, rgba(200,168,75,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 50% 80%, rgba(255,255,255,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 10% 70%, rgba(200,168,75,0.2) 0%, transparent 100%),
+      radial-gradient(1px 1px at 90% 60%, rgba(255,255,255,0.2) 0%, transparent 100%);
+  }
+  .container { max-width: 900px; margin: 0 auto; padding: 20px; position: relative; z-index: 1; }
+
+  /* API Key Banner */
+  .api-banner {
+    background: rgba(233,69,96,0.15);
+    border: 1px solid rgba(233,69,96,0.4);
+    border-radius: 12px;
+    padding: 14px 20px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .api-banner label { color: var(--muted); font-size: 14px; white-space: nowrap; }
+  .api-banner input {
+    flex: 1; min-width: 200px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: var(--text);
+    font-size: 14px;
+    direction: ltr;
+  }
+  .api-banner input:focus { outline: none; border-color: var(--gold); }
+  .api-save-btn {
+    background: var(--gold);
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    padding: 50px 20px 40px;
+  }
+  .header .menorah { font-size: 48px; margin-bottom: 12px; animation: glow 3s ease-in-out infinite; }
+  @keyframes glow {
+    0%,100% { text-shadow: 0 0 10px rgba(200,168,75,0.3); }
+    50% { text-shadow: 0 0 30px rgba(200,168,75,0.8), 0 0 60px rgba(200,168,75,0.4); }
+  }
+  .header h1 {
+    font-size: clamp(28px, 5vw, 46px);
+    background: linear-gradient(135deg, #e8d48b, #c8a84b, #f0e080);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 10px;
+    font-weight: 800;
+    letter-spacing: 1px;
+  }
+  .header .subtitle {
+    color: var(--muted);
+    font-size: 15px;
+    font-style: italic;
+  }
+  .header .subtitle span {
+    color: var(--gold);
+    font-weight: bold;
+    font-style: normal;
+  }
+
+  /* Cards */
+  .card {
+    background: rgba(255,255,255,0.04);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 28px;
+    margin-bottom: 24px;
+    transition: all 0.3s;
+  }
+  .card:hover { border-color: rgba(200,168,75,0.5); }
+  .section-title {
+    font-size: 18px;
+    color: var(--gold);
+    margin-bottom: 18px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* Topic Buttons */
+  .topic-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 14px;
+  }
+  .topic-btn {
+    background: rgba(255,255,255,0.04);
+    border: 2px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 14px;
+    cursor: pointer;
+    text-align: center;
+    color: var(--text);
+    transition: all 0.3s;
+    font-size: 15px;
+    font-family: inherit;
+  }
+  .topic-btn .icon { font-size: 30px; display: block; margin-bottom: 8px; }
+  .topic-btn:hover, .topic-btn.active {
+    background: rgba(200,168,75,0.15);
+    border-color: var(--gold);
+    color: var(--gold);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(200,168,75,0.2);
+  }
+
+  /* Options area */
+  .options-area {
+    display: none;
+    animation: fadeIn 0.4s ease;
+  }
+  .options-area.show { display: block; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Level Buttons */
+  .level-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+  .level-btn {
+    background: rgba(255,255,255,0.04);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 18px;
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 14px;
+    font-family: inherit;
+    transition: all 0.25s;
+  }
+  .level-btn:hover, .level-btn.active {
+    background: rgba(200,168,75,0.15);
+    border-color: var(--gold);
+    color: var(--gold);
+  }
+
+  /* Event Select */
+  select, input[type="text"], textarea {
+    width: 100%;
+    background: rgba(255,255,255,0.06);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    color: var(--text);
+    font-size: 15px;
+    font-family: inherit;
+    transition: border-color 0.25s;
+  }
+  select:focus, input[type="text"]:focus, textarea:focus {
+    outline: none;
+    border-color: var(--gold);
+  }
+  select option { background: var(--card); }
+  textarea { resize: vertical; min-height: 80px; }
+  label { display: block; color: var(--muted); font-size: 14px; margin-bottom: 6px; margin-top: 14px; }
+
+  /* Advanced Toggle */
+  .advanced-toggle {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--muted);
+    padding: 10px 18px;
+    cursor: pointer;
+    font-size: 13px;
+    font-family: inherit;
+    transition: all 0.25s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .advanced-toggle:hover { border-color: var(--gold); color: var(--gold); }
+  .advanced-panel { display: none; margin-top: 14px; }
+  .advanced-panel.show { display: block; animation: fadeIn 0.3s ease; }
+  .advanced-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px;
+    margin-top: 10px;
+  }
+
+  /* Generate Button */
+  .generate-btn {
+    width: 100%;
+    padding: 18px;
+    background: linear-gradient(135deg, #c8a84b, #e8d48b, #c8a84b);
+    background-size: 200% 200%;
+    animation: gradientShift 4s ease infinite;
+    border: none;
+    border-radius: 14px;
+    color: #1a1a2e;
+    font-size: 20px;
+    font-weight: 800;
+    font-family: inherit;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 20px;
+  }
+  @keyframes gradientShift {
+    0%,100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+  .generate-btn:hover { transform: translateY(-3px); box-shadow: 0 12px 35px rgba(200,168,75,0.4); }
+  .generate-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+  /* Result */
+  .result-card {
+    background: rgba(200,168,75,0.06);
+    border: 1px solid rgba(200,168,75,0.35);
+    border-radius: 20px;
+    padding: 30px;
+    margin-top: 24px;
+    display: none;
+    animation: fadeIn 0.5s ease;
+  }
+  .result-card.show { display: block; }
+  .result-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .result-tag {
+    background: rgba(200,168,75,0.2);
+    color: var(--gold);
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: 13px;
+    border: 1px solid var(--border);
+  }
+  .result-idea {
+    font-size: 18px;
+    font-weight: 700;
+    color: #f0e080;
+    line-height: 1.6;
+    margin-bottom: 18px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .result-body {
+    font-size: 15px;
+    line-height: 1.9;
+    color: var(--text);
+    white-space: pre-wrap;
+  }
+
+  /* Riddles */
+  .riddle-item {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .riddle-q { font-size: 15px; color: var(--text); margin-bottom: 10px; }
+  .riddle-answer-btn {
+    background: rgba(200,168,75,0.12);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 14px;
+    color: var(--gold);
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+  }
+  .riddle-answer-btn:hover { background: rgba(200,168,75,0.25); }
+  .riddle-answer {
+    margin-top: 10px;
+    padding: 10px 14px;
+    background: rgba(76,175,140,0.1);
+    border: 1px solid rgba(76,175,140,0.3);
+    border-radius: 8px;
+    color: var(--success);
+    font-size: 14px;
+    display: none;
+    animation: fadeIn 0.3s ease;
+  }
+  .riddle-answer.show { display: block; }
+
+  /* Action Buttons */
+  .action-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .action-btn {
+    padding: 11px 22px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    font-size: 15px;
+    font-family: inherit;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    transition: all 0.25s;
+  }
+  .btn-like { background: rgba(76,175,140,0.2); color: var(--success); border: 1.5px solid rgba(76,175,140,0.4); }
+  .btn-like:hover { background: rgba(76,175,140,0.35); }
+  .btn-retry { background: rgba(200,168,75,0.15); color: var(--gold); border: 1.5px solid rgba(200,168,75,0.4); }
+  .btn-retry:hover { background: rgba(200,168,75,0.3); }
+  .btn-share { background: rgba(37,211,102,0.15); color: #25d366; border: 1.5px solid rgba(37,211,102,0.4); }
+  .btn-share:hover { background: rgba(37,211,102,0.3); }
+  .btn-export { background: rgba(100,160,255,0.15); color: #80b4ff; border: 1.5px solid rgba(100,160,255,0.4); }
+  .btn-export:hover { background: rgba(100,160,255,0.3); }
+  .btn-liked { background: rgba(76,175,140,0.4) !important; }
+
+  /* Share Modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 30px;
+    max-width: 420px;
+    width: 90%;
+    animation: fadeIn 0.3s ease;
+  }
+  .modal h3 { color: var(--gold); margin-bottom: 20px; font-size: 18px; }
+  .modal-close {
+    float: left;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 22px;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .modal-send-btn {
+    width: 100%;
+    padding: 14px;
+    background: #25d366;
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    font-family: inherit;
+    cursor: pointer;
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.25s;
+  }
+  .modal-send-btn:hover { background: #20c45a; }
+
+  /* Loading */
+  .loading-area {
+    text-align: center;
+    padding: 30px;
+    display: none;
+  }
+  .loading-area.show { display: block; }
+  .spinner {
+    width: 48px; height: 48px;
+    border: 4px solid var(--border);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { color: var(--muted); font-size: 15px; }
+
+  /* Parasha badge */
+  .parasha-badge {
+    background: linear-gradient(135deg, rgba(200,168,75,0.2), rgba(200,168,75,0.05));
+    border: 1px solid rgba(200,168,75,0.4);
+    border-radius: 12px;
+    padding: 14px 20px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 15px;
+  }
+  .parasha-badge .pname { color: var(--gold); font-weight: bold; font-size: 17px; }
+  .parasha-badge .pdate { color: var(--muted); font-size: 13px; }
+
+  /* Liked count */
+  .liked-count {
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    margin-top: 20px;
+    padding: 10px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* Footer */
+  .footer { text-align: center; padding: 30px 20px; color: var(--muted); font-size: 13px; }
+  .footer a { color: var(--gold); text-decoration: none; }
+
+  @media (max-width: 600px) {
+    .header { padding: 30px 10px 24px; }
+    .card { padding: 18px; }
+    .topic-grid { grid-template-columns: repeat(2, 1fr); }
+    .action-row { flex-direction: column; }
+    .action-btn { width: 100%; justify-content: center; }
+  }
+</style>
+</head>
+<body>
+<div class="stars"></div>
+
+<!-- Welcome Modal -->
+<div class="modal-overlay" id="welcomeModal" style="display:none;align-items:center;justify-content:center;z-index:999">
+  <div class="modal" style="max-width:480px;text-align:center">
+    <div style="font-size:48px;margin-bottom:12px">🕎</div>
+    <h2 style="color:var(--gold);font-size:22px;margin-bottom:6px">ברוך הבא למחולל דברי תורה</h2>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:20px">נתנאל הזה — רעיונות גדולים לעסקים קטנים</p>
+    <div style="background:rgba(200,168,75,0.08);border:1px solid rgba(200,168,75,0.3);border-radius:10px;padding:18px;text-align:right;margin-bottom:20px">
+      <p style="color:var(--gold);font-weight:700;margin-bottom:10px">📋 כדי להתחיל — צריך מפתח API חינמי:</p>
+      <ol style="color:var(--text);font-size:13px;line-height:2;padding-right:18px">
+        <li>לך ל: <a href="https://console.groq.com" target="_blank" style="color:var(--gold);font-weight:700">console.groq.com</a></li>
+        <li>הירשם עם חשבון Google (חינמי לגמרי)</li>
+        <li>לחץ על <strong>API Keys</strong> → <strong>Create API Key</strong></li>
+        <li>תן שם כלשהו ולחץ <strong>Submit</strong></li>
+        <li>העתק את המפתח (מתחיל ב-<code style="background:rgba(255,255,255,0.1);padding:1px 5px;border-radius:3px">gsk_</code>)</li>
+        <li>חזור לכאן, הדבק בשדה למעלה ולחץ <strong>שמור</strong></li>
+      </ol>
+    </div>
+    <button class="modal-send-btn" onclick="closeWelcome()" style="width:100%">✅ הבנתי, בואו נתחיל!</button>
+  </div>
+</div>
+
+<!-- API Key Banner -->
+<div class="container">
+  <div class="api-banner" id="apiBanner">
+    <label>🔑 מפתח API של Groq (חינמי):</label>
+    <input type="password" id="apiKeyInput" placeholder="gsk_..." />
+    <button class="api-save-btn" onclick="saveApiKey()">שמור</button>
+    <button class="api-save-btn" style="margin-right:8px;background:rgba(200,168,75,0.2);border:1px solid var(--gold)" onclick="openAdminModal()">🔐 מנהל</button>
+  </div>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="menorah">🕎</div>
+    <h1>מחולל דברי תורה</h1>
+    <p class="subtitle"><span>נתנאל הזה</span> — רעיונות גדולים לעסקים קטנים</p>
+  </div>
+
+  <!-- Parasha Badge -->
+  <div class="parasha-badge" id="parashaBadge">
+    <span style="font-size:22px">📖</span>
+    <div>
+      <div>פרשת השבוע: <span class="pname" id="parashName">טוען...</span></div>
+      <div class="pdate" id="parashDate"></div>
+    </div>
+  </div>
+
+  <!-- Main Card -->
+  <div class="card">
+    <div class="section-title">✨ בחר סוג דבר תורה</div>
+    <div class="topic-grid">
+      <button class="topic-btn" onclick="selectTopic('weekly')" id="btn-weekly">
+        <span class="icon">📜</span>דבר תורה<br>לפרשת השבוע
+      </button>
+      <button class="topic-btn" onclick="selectTopic('event')" id="btn-event">
+        <span class="icon">🎉</span>דבר תורה<br>לפי אירוע
+      </button>
+      <button class="topic-btn" onclick="selectTopic('special')" id="btn-special">
+        <span class="icon">⭐</span>דבר תורה<br>לאירוע מיוחד
+      </button>
+      <button class="topic-btn" onclick="selectTopic('summary')" id="btn-summary">
+        <span class="icon">📋</span>תקציר<br>הפרשה
+      </button>
+      <button class="topic-btn" onclick="selectTopic('riddles')" id="btn-riddles">
+        <span class="icon">🧩</span>חידות<br>לפרשה
+      </button>
+    </div>
+  </div>
+
+  <!-- Options -->
+  <div class="options-area card" id="optionsArea">
+    <!-- Weekly -->
+    <div id="opt-weekly" class="opt-section" style="display:none">
+      <div class="section-title">📜 דבר תורה לפרשת השבוע</div>
+      <p style="color:var(--muted);font-size:14px;margin-bottom:14px">
+        פרשת השבוע: <strong style="color:var(--gold)" id="weeklyParashName">—</strong>
+      </p>
+      <label>בחר רמה:</label>
+      <div class="level-group" id="level-weekly">
+        <button class="level-btn active" data-level="קצר" onclick="setLevel('weekly',this)">💬 משהו בקטנה</button>
+        <button class="level-btn" data-level="בינוני" onclick="setLevel('weekly',this)">📚 שיעור א׳</button>
+        <button class="level-btn" data-level="מעמיק" onclick="setLevel('weekly',this)">🔬 בייניש רציני</button>
+      </div>
+    </div>
+
+    <!-- Event -->
+    <div id="opt-event" class="opt-section" style="display:none">
+      <div class="section-title">🎉 דבר תורה לפי אירוע</div>
+      <label>בחר אירוע:</label>
+      <select id="eventSelect">
+        <option value="ברית מילה">ברית מילה</option>
+        <option value="שבע ברכות">שבע ברכות</option>
+        <option value="יום הולדת">יום הולדת</option>
+        <option value="בר מצווה">בר מצווה</option>
+        <option value="בת מצווה">בת מצווה</option>
+        <option value="חתונה">חתונה</option>
+        <option value="ברית בת / זבד הבת">ברית בת / זבד הבת</option>
+        <option value="אירוסין">אירוסין</option>
+        <option value="שבת חתן">שבת חתן</option>
+        <option value="סיום מסכת">סיום מסכת</option>
+        <option value="ראש חודש">ראש חודש</option>
+        <option value="חג שמחה">חג שמחה</option>
+        <option value="פדיון הבן">פדיון הבן</option>
+        <option value="אזכרה / יום השנה">אזכרה / יום השנה</option>
+        <option value="הכנסת ספר תורה">הכנסת ספר תורה</option>
+      </select>
+      <label>קשר לפרשת השבוע:</label>
+      <select id="eventParashLink">
+        <option value="כן">כן — קשר לפרשת השבוע</option>
+        <option value="לא">לא — דבר תורה כללי לאירוע</option>
+      </select>
+      <label>בחר רמה:</label>
+      <div class="level-group" id="level-event">
+        <button class="level-btn active" data-level="קצר" onclick="setLevel('event',this)">💬 משהו בקטנה</button>
+        <button class="level-btn" data-level="בינוני" onclick="setLevel('event',this)">📚 שיעור א׳</button>
+        <button class="level-btn" data-level="מעמיק" onclick="setLevel('event',this)">🔬 בייניש רציני</button>
+      </div>
+    </div>
+
+    <!-- Special -->
+    <div id="opt-special" class="opt-section" style="display:none">
+      <div class="section-title">⭐ דבר תורה לאירוע מיוחד</div>
+      <label>תאר את האירוע / הנושא (לדוגמה: ילד בשם יוסף, טיול לירושלים, חנוכת בית):</label>
+      <textarea id="specialEvent" placeholder="כתוב כאן... לדוגמה: 'שמחת בר מצווה של נחמן הבן ישי בפרשת בהעלותך', 'חנוכת בית חדש בירושלים', 'יום הולדת 40 לרבקה'"></textarea>
+      <label>בחר רמה:</label>
+      <div class="level-group" id="level-special">
+        <button class="level-btn active" data-level="קצר" onclick="setLevel('special',this)">💬 משהו בקטנה</button>
+        <button class="level-btn" data-level="בינוני" onclick="setLevel('special',this)">📚 שיעור א׳</button>
+        <button class="level-btn" data-level="מעמיק" onclick="setLevel('special',this)">🔬 בייניש רציני</button>
+      </div>
+    </div>
+
+    <!-- Summary -->
+    <div id="opt-summary" class="opt-section" style="display:none">
+      <div class="section-title">📋 תקציר פרשת השבוע</div>
+      <p style="color:var(--muted);font-size:14px;margin-bottom:14px">
+        תקציר פרשת <strong style="color:var(--gold)" id="summaryParashName">—</strong> — בסיכום ובראשי פרקים
+      </p>
+      <label>רמת פירוט:</label>
+      <div class="level-group" id="level-summary">
+        <button class="level-btn active" data-level="קצר" onclick="setLevel('summary',this)">📝 קצר ותמציתי</button>
+        <button class="level-btn" data-level="בינוני" onclick="setLevel('summary',this)">📖 בינוני</button>
+        <button class="level-btn" data-level="מעמיק" onclick="setLevel('summary',this)">📚 מפורט</button>
+      </div>
+    </div>
+
+    <!-- Riddles -->
+    <div id="opt-riddles" class="opt-section" style="display:none">
+      <div class="section-title">🧩 חידות לפרשת השבוע</div>
+      <p style="color:var(--muted);font-size:14px;margin-bottom:14px">
+        חידות על פרשת <strong style="color:var(--gold)" id="riddlesParashName">—</strong>
+      </p>
+      <label>רמת קושי:</label>
+      <div class="level-group" id="level-riddles">
+        <button class="level-btn active" data-level="קל" onclick="setLevel('riddles',this)">😊 לילדים</button>
+        <button class="level-btn" data-level="בינוני" onclick="setLevel('riddles',this)">🎓 לנוער</button>
+        <button class="level-btn" data-level="קשה" onclick="setLevel('riddles',this)">🔥 למבוגרים</button>
+      </div>
+      <label>כמות חידות:</label>
+      <select id="riddleCount">
+        <option value="5">5 חידות</option>
+        <option value="8" selected>8 חידות</option>
+        <option value="12">12 חידות</option>
+      </select>
+    </div>
+
+    <!-- Advanced Settings -->
+    <button class="advanced-toggle" onclick="toggleAdvanced()" id="advToggle">
+      <span id="advIcon">▶</span> הגדרות מתקדמות (התאמה אישית)
+    </button>
+    <div class="advanced-panel" id="advPanel">
+      <p style="color:var(--muted);font-size:13px;margin-bottom:10px">
+        🎯 מלא פרטים כדי להתאים את דבר התורה בצורה מדויקת יותר
+      </p>
+      <div class="advanced-grid">
+        <div>
+          <label>גיל המאזין / קהל:</label>
+          <select id="advAge">
+            <option value="">לא מוגדר</option>
+            <option value="3-6">גן ילדים (3-6)</option>
+            <option value="7-10">כיתות א-ד (7-10)</option>
+            <option value="11-13">כיתות ה-ז (11-13)</option>
+            <option value="14-17">חטיבה עליונה (14-17)</option>
+            <option value="18-25">צעירים (18-25)</option>
+            <option value="25-50">מבוגרים (25-50)</option>
+            <option value="50+">ותיקים (50+)</option>
+            <option value="משפחה">משפחות מעורבות</option>
+          </select>
+        </div>
+        <div>
+          <label>תחום / עיסוק:</label>
+          <select id="advJob">
+            <option value="">לא מוגדר</option>
+            <option value="תלמיד ישיבה">תלמיד ישיבה</option>
+            <option value="מורה בגן">מורה בגן / כיתה א</option>
+            <option value="מורה">מורה</option>
+            <option value="אברך בכולל">אברך בכולל</option>
+            <option value="רב">רב</option>
+            <option value="רופא">רופא</option>
+            <option value="עסקים">עסקים</option>
+            <option value="הייטק">הייטק</option>
+            <option value="חייל">חייל</option>
+            <option value="עורך דין">עורך דין</option>
+          </select>
+        </div>
+        <div>
+          <label>שם המשתתף (אופציונלי):</label>
+          <input type="text" id="advName" placeholder="לדוגמה: יצחק, רחל...">
+        </div>
+        <div>
+          <label>הערה נוספת:</label>
+          <input type="text" id="advNote" placeholder="כל פרט שתרצה...">
+        </div>
+      </div>
+      <div style="margin-top:12px;padding:10px 14px;background:rgba(200,168,75,0.08);border-radius:8px;font-size:13px;color:var(--muted)">
+        💡 <strong style="color:var(--gold)">דוגמה:</strong> מורה לילדים בגן — תקבל דבר תורה עם ניקוד ורעיונות פשוטים. אברך ישיבה — תקבל דבר תורה עמוק מבוסס גמרא ומפרשים.
+      </div>
+    </div>
+
+    <!-- Generate Button -->
+    <button class="generate-btn" id="generateBtn" onclick="generateTorah()">
+      ✨ הפק דבר תורה
+    </button>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading-area" id="loadingArea">
+    <div class="spinner"></div>
+    <div class="loading-text" id="loadingText">מחפש בעולמות עליונים... 📖</div>
+  </div>
+
+  <!-- Result -->
+  <div class="result-card" id="resultCard">
+    <div class="result-header">
+      <div>
+        <div class="result-tag" id="resultTag">דבר תורה</div>
+        <div style="color:var(--muted);font-size:13px;margin-top:4px" id="resultMeta"></div>
+      </div>
+      <div style="color:var(--gold);font-size:22px">📖</div>
+    </div>
+    <div class="result-idea" id="resultIdea"></div>
+    <div class="result-body" id="resultBody"></div>
+    <div id="riddlesContainer"></div>
+
+    <div class="action-row">
+      <button class="action-btn btn-like" id="likeBtn" onclick="handleLike()">❤️ אהבתי ממש</button>
+      <button class="action-btn btn-retry" id="retryBtn" onclick="retryGenerate()">🔄 נסה שוב</button>
+      <button class="action-btn btn-share" onclick="openShareModal()">📲 שתף לוואטסאפ</button>
+      <button class="action-btn" style="background:rgba(200,168,75,0.15);border:1px solid var(--gold);color:var(--gold)" onclick="downloadPDF()">📄 הורד PDF</button>
+    </div>
+    <div class="liked-count" id="likedCount"></div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <p>🕎 מחולל דברי תורה · <span style="color:var(--gold)">נתנאל הזה</span> — רעיונות גדולים לעסקים קטנים</p>
+    <p style="margin-top:6px">כל הדברים מופקים בסיוע AI — יש לבדוק עם רב לפני הלכה למעשה</p>
+  </div>
+</div>
+
+<!-- Share Modal -->
+<div class="modal-overlay" id="shareModal" onclick="closeShareModal(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeShareModal()">✕</button>
+    <h3>📲 שתף דבר תורה לחבר</h3>
+    <label>שם החבר:</label>
+    <input type="text" id="friendName" placeholder="לדוגמה: יוסי">
+    <label>מספר טלפון:</label>
+    <input type="text" id="friendPhone" placeholder="0501234567" dir="ltr">
+    <button class="modal-send-btn" onclick="sendWhatsApp()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+      שלח לוואטסאפ
+    </button>
+  </div>
+</div>
+
+<!-- Admin Modal -->
+<div class="modal-overlay" id="adminModal" onclick="closeAdminModal(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeAdminModal()">✕</button>
+    <h3>🔐 כניסת מנהל</h3>
+    <div id="adminLoginSection">
+      <label>שם משתמש:</label>
+      <input type="text" id="adminUser" placeholder="admin">
+      <label>סיסמה:</label>
+      <input type="password" id="adminPass" placeholder="••••••">
+      <button class="modal-send-btn" onclick="adminLogin()" style="margin-top:12px">כניסה</button>
+    </div>
+    <div id="adminPanel" style="display:none">
+      <p style="color:var(--gold);margin-bottom:16px">✅ מחובר כמנהל</p>
+      <p style="color:var(--muted);margin-bottom:8px">סה"כ דברי תורה שנשמרו: <strong id="adminCount" style="color:var(--text)">0</strong></p>
+      <button class="modal-send-btn" onclick="exportToExcel()">📊 הורד קובץ אקסל</button>
+      <button class="modal-send-btn" style="margin-top:10px;background:rgba(233,69,96,0.2);border:1px solid var(--accent)" onclick="clearExportData()">🗑️ נקה נתונים</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// =========================================
+// PARASHA CALENDAR
+// =========================================
+const PARASHIYOT_SCHEDULE = [
+  { date: '2026-06-27', name: 'בלק', english: 'Balak' },
+  { date: '2026-07-04', name: 'פינחס', english: 'Pinchas' },
+  { date: '2026-07-11', name: 'מטות-מסעי', english: 'Matot-Masei' },
+  { date: '2026-07-18', name: 'דברים', english: 'Devarim' },
+  { date: '2026-07-25', name: 'ואתחנן', english: "Va'etchanan" },
+  { date: '2026-08-01', name: 'עקב', english: 'Ekev' },
+  { date: '2026-08-08', name: 'ראה', english: "Re'eh" },
+  { date: '2026-08-15', name: 'שופטים', english: 'Shoftim' },
+  { date: '2026-08-22', name: 'כי תצא', english: 'Ki Tetze' },
+  { date: '2026-08-29', name: 'כי תבוא', english: 'Ki Tavo' },
+  { date: '2026-09-05', name: 'נצבים-וילך', english: 'Nitzavim-Vayelech' },
+  { date: '2026-09-12', name: 'האזינו', english: "Ha'azinu" },
+  { date: '2026-09-26', name: 'וזאת הברכה', english: 'Vezot Haberachah' },
+  { date: '2026-10-03', name: 'בראשית', english: 'Bereishit' },
+  { date: '2026-10-10', name: 'נח', english: 'Noach' },
+  { date: '2026-10-17', name: 'לך לך', english: 'Lech Lecha' },
+  { date: '2026-10-24', name: 'וירא', english: 'Vayera' },
+  { date: '2026-10-31', name: 'חיי שרה', english: 'Chayei Sarah' },
+  { date: '2026-11-07', name: 'תולדות', english: 'Toldot' },
+  { date: '2026-11-14', name: 'ויצא', english: 'Vayetzei' },
+  { date: '2026-11-21', name: 'וישלח', english: 'Vayishlach' },
+  { date: '2026-11-28', name: 'וישב', english: 'Vayeshev' },
+  { date: '2026-12-05', name: 'מקץ', english: 'Miketz' },
+  { date: '2026-12-12', name: 'ויגש', english: 'Vayigash' },
+  { date: '2026-12-19', name: 'ויחי', english: 'Vayechi' },
+  { date: '2026-12-26', name: 'שמות', english: 'Shemot' },
+  { date: '2027-01-02', name: "וארא", english: "Va'era" },
+  { date: '2027-01-09', name: 'בא', english: 'Bo' },
+  { date: '2027-01-16', name: 'בשלח', english: 'Beshalach' },
+  { date: '2027-01-23', name: 'יתרו', english: 'Yitro' },
+  { date: '2027-01-30', name: 'משפטים', english: 'Mishpatim' },
+  { date: '2027-02-06', name: 'תרומה', english: 'Terumah' },
+  { date: '2027-02-13', name: 'תצוה', english: 'Tetzaveh' },
+  { date: '2027-02-20', name: 'כי תשא', english: 'Ki Tisa' },
+  { date: '2027-02-27', name: 'ויקהל-פקודי', english: 'Vayakhel-Pekudei' },
+  { date: '2027-03-06', name: 'ויקרא', english: 'Vayikra' },
+  { date: '2027-03-13', name: 'צו', english: 'Tzav' },
+  { date: '2027-03-27', name: 'שמיני', english: 'Shemini' },
+  { date: '2027-04-03', name: 'תזריע-מצורע', english: 'Tazria-Metzora' },
+  { date: '2027-04-10', name: 'אחרי מות-קדושים', english: 'Acharei Mot-Kedoshim' },
+  { date: '2027-04-17', name: 'אמור', english: 'Emor' },
+  { date: '2027-04-24', name: 'בהר-בחוקותי', english: 'Behar-Bechukotai' },
+  { date: '2027-05-01', name: 'במדבר', english: 'Bamidbar' },
+  { date: '2027-05-08', name: 'נשא', english: 'Naso' },
+  { date: '2027-05-15', name: 'בהעלותך', english: "Beha'alotecha" },
+  { date: '2027-05-22', name: 'שלח לך', english: 'Shelach' },
+  { date: '2027-05-29', name: 'קרח', english: 'Korach' },
+  { date: '2027-06-05', name: 'חקת', english: 'Chukat' },
+  { date: '2027-06-12', name: 'בלק', english: 'Balak' },
+];
+
+function getCurrentParasha() {
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  let closest = PARASHIYOT_SCHEDULE[0];
+  let minDiff = Infinity;
+
+  for (const p of PARASHIYOT_SCHEDULE) {
+    const pDate = new Date(p.date);
+    pDate.setHours(0,0,0,0);
+    const diff = pDate - today;
+    if (diff >= 0 && diff < minDiff) {
+      minDiff = diff;
+      closest = p;
+    }
+  }
+
+  // If no future parasha, return last one
+  if (minDiff === Infinity) {
+    return PARASHIYOT_SCHEDULE[PARASHIYOT_SCHEDULE.length - 1];
+  }
+  return closest;
+}
+
+function getNextShabat() {
+  const today = new Date();
+  const day = today.getDay();
+  const daysToSat = (6 - day + 7) % 7 || 7;
+  const sat = new Date(today);
+  sat.setDate(today.getDate() + daysToSat);
+  return sat.toLocaleDateString('he-IL', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+// =========================================
+// STATE
+// =========================================
+let currentTopic = '';
+let currentLevel = { weekly: 'קצר', event: 'קצר', special: 'קצר', summary: 'קצר', riddles: 'קל' };
+let currentResult = '';
+let currentIdea = '';
+let likedCount = 0;
+let exportData = [];
+let currentParasha = null;
+
+// =========================================
+// INIT
+// =========================================
+function init() {
+  currentParasha = getCurrentParasha();
+  document.getElementById('parashName').textContent = 'פרשת ' + currentParasha.name;
+  document.getElementById('parashDate').textContent = 'שבת ' + getNextShabat();
+  document.getElementById('weeklyParashName').textContent = currentParasha.name;
+  document.getElementById('summaryParashName').textContent = currentParasha.name;
+  document.getElementById('riddlesParashName').textContent = currentParasha.name;
+
+  // Load API key
+  const savedKey = localStorage.getItem('anthropicKey');
+  if (savedKey) {
+    document.getElementById('apiKeyInput').value = savedKey;
+    document.getElementById('apiBanner').style.background = 'rgba(76,175,140,0.1)';
+    document.getElementById('apiBanner').style.borderColor = 'rgba(76,175,140,0.4)';
+  } else {
+    // Show welcome modal for first-time visitors
+    const el = document.getElementById('welcomeModal');
+    el.style.display = 'flex';
+  }
+}
+
+function closeWelcome() {
+  document.getElementById('welcomeModal').style.display = 'none';
+}
+
+function saveApiKey() {
+  const key = document.getElementById('apiKeyInput').value.trim();
+  if (key) {
+    localStorage.setItem('anthropicKey', key);
+    document.getElementById('apiBanner').style.background = 'rgba(76,175,140,0.1)';
+    document.getElementById('apiBanner').style.borderColor = 'rgba(76,175,140,0.4)';
+    showNotif('✅ מפתח נשמר');
+  }
+}
+
+function showNotif(msg) {
+  const n = document.createElement('div');
+  n.textContent = msg;
+  n.style.cssText = 'position:fixed;top:20px;right:20px;background:rgba(76,175,140,0.9);color:white;padding:12px 20px;border-radius:10px;z-index:9999;font-size:14px;animation:fadeIn 0.3s ease';
+  document.body.appendChild(n);
+  setTimeout(() => n.remove(), 2500);
+}
+
+// =========================================
+// TOPIC SELECTION
+// =========================================
+function selectTopic(topic) {
+  currentTopic = topic;
+  document.querySelectorAll('.topic-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('btn-' + topic).classList.add('active');
+
+  document.querySelectorAll('.opt-section').forEach(s => s.style.display = 'none');
+  document.getElementById('opt-' + topic).style.display = 'block';
+
+  const area = document.getElementById('optionsArea');
+  area.classList.add('show');
+  area.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function setLevel(topic, btn) {
+  document.querySelectorAll(`#level-${topic} .level-btn`).forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentLevel[topic] = btn.dataset.level;
+}
+
+function toggleAdvanced() {
+  const panel = document.getElementById('advPanel');
+  const icon = document.getElementById('advIcon');
+  panel.classList.toggle('show');
+  icon.textContent = panel.classList.contains('show') ? '▼' : '▶';
+}
+
+// =========================================
+// BUILD PROMPT
+// =========================================
+function buildPrompt() {
+  const advAge = document.getElementById('advAge').value;
+  const advJob = document.getElementById('advJob').value;
+  const advName = document.getElementById('advName').value;
+  const advNote = document.getElementById('advNote').value;
+
+  let advContext = '';
+  if (advAge || advJob || advName || advNote) {
+    advContext = '\n\n===פרטים אישיים===\n';
+    if (advName) advContext += `שם: ${advName}\n`;
+    if (advAge) advContext += `גיל: ${advAge}\n`;
+    if (advJob) advContext += `תחום/עיסוק: ${advJob}\n`;
+    if (advNote) advContext += `הערה: ${advNote}\n`;
+
+    // Special instructions for specific audiences
+    if (advJob === 'מורה בגן' || advAge === '3-6' || advAge === '7-10') {
+      advContext += '\n⚠️ חשוב: כתוב עם ניקוד מלא על כל המילים החשובות. השתמש בשפה פשוטה, ברמת ילדי גן ובית ספר. הוסף גם רעיון לפעילות יצירתית קטנה.\n';
+    }
+    if (advJob === 'אברך בכולל' || advJob === 'רב') {
+      advContext += '\n⚠️ חשוב: כתוב דבר תורה עמוק ומבוסס על גמרא, ראשונים ואחרונים. ציין מקורות מדויקים. הוסף ״חידוש״ ייחודי. רמת ישיבה גבוהה.\n';
+    }
+    if (advJob === 'תלמיד ישיבה') {
+      advContext += '\n⚠️ חשוב: בסס על גמרא ומפרשים. הוסף שאלות ותשובות בסגנון ישיבה.\n';
+    }
+  }
+
+  const level = currentLevel[currentTopic];
+  const levelInstructions = {
+    'קצר': 'קצר ותמציתי — עד 3-4 משפטים, מוכן לאמירה תוך דקה אחת. מרכזי ועוצמתי.',
+    'קל': 'פשוט ונגיש לכל, עם דוגמאות קלות. 3-4 שאלות.',
+    'בינוני': 'בינוני — 2-3 דקות. עם ציטוט מקרא ורעיון מעניין. 5-7 שאלות.',
+    'מעמיק': 'מעמיק ומפורט — 5-7 דקות. עם מקורות, מדרש או גמרא, ניתוח ומסר ברור. בסוף: סיכום המהלך בנקודות (•) ומוסר השכל — לימוד לנו.',
+    'קשה': 'קשה ומאתגר, רמת גבוהה, דורש ידע נרחב. 8-12 שאלות.',
+  };
+
+  const levelDesc = levelInstructions[level] || levelInstructions['בינוני'];
+
+  const parashName = currentParasha?.name || 'שבועית';
+
+  let userPrompt = '';
+
+  if (currentTopic === 'weekly') {
+    userPrompt = `כתוב דבר תורה לפרשת ${parashName}.
+רמה: ${levelDesc}
+${advContext}
+
+פורמט חובה:
+שורה 1: [רעיון מרכזי — 1-2 משפטים עוצמתיים]
+שורה 2: [תת-כותרת / שאלה מעוררת]
+---
+[הרחבה מלאה של דבר התורה]`;
+
+  } else if (currentTopic === 'event') {
+    const event = document.getElementById('eventSelect').value;
+    const link = document.getElementById('eventParashLink').value;
+    const withParash = link === 'כן' ? ` בחיבור לפרשת ${parashName}` : '';
+    userPrompt = `כתוב דבר תורה לאירוע: ${event}${withParash}.
+רמה: ${levelDesc}
+${advContext}
+
+פורמט חובה:
+שורה 1: [ברכה/רעיון מרכזי — 1-2 משפטים עוצמתיים המותאמים לאירוע]
+שורה 2: [תת-כותרת / חיבור לאירוע]
+---
+[הרחבה מלאה]`;
+
+  } else if (currentTopic === 'special') {
+    const special = document.getElementById('specialEvent').value || 'אירוע מיוחד';
+    userPrompt = `כתוב דבר תורה מיוחד ומותאם אישית עבור: ${special}
+פרשת השבוע הקרובה: ${parashName}
+רמה: ${levelDesc}
+${advContext}
+
+פורמט חובה:
+שורה 1: [רעיון מרכזי מותאם אישית — 1-2 משפטים עוצמתיים]
+שורה 2: [חיבור ייחודי לאירוע]
+---
+[הרחבה מלאה, ספציפית ומרגשת לאירוע]`;
+
+  } else if (currentTopic === 'summary') {
+    const summLevel = {
+      'קצר': 'קצר — עד 8 נקודות עיקריות',
+      'בינוני': 'בינוני — 10-15 נקודות עיקריות',
+      'מעמיק': 'מפורט — 15-20 נקודות עם ציטוטים'
+    };
+    userPrompt = `כתוב תקציר מקיף של פרשת ${parashName}.
+רמה: ${summLevel[level] || summLevel['בינוני']}
+${advContext}
+
+הפורמט:
+• כותרת: "📖 תקציר פרשת ${parashName}"
+• סקירה כללית (2-3 משפטים)
+• ראשי פרקים מספריים (כל נקודה בשורה נפרדת עם •)
+• מסר מרכזי של הפרשה (בסוף)`;
+
+  } else if (currentTopic === 'riddles') {
+    const count = document.getElementById('riddleCount').value;
+    userPrompt = `כתוב ${count} חידות על פרשת ${parashName}.
+רמת קושי: ${level}
+${advContext}
+
+פורמט חובה — ${count} חידות, כל אחת בפורמט הזה בדיוק:
+RIDDLE: [שאלת החידה]
+ANSWER: [תשובה מלאה]
+
+---
+
+חשוב: חידות מגוונות — על דמויות, מספרים, מקומות, מילות מפתח. החידות צריכות להיות מהנות ומאתגרות ברמה המבוקשת.`;
+  }
+
+  return userPrompt;
+}
+
+// =========================================
+// GENERATE
+// =========================================
+async function generateTorah() {
+  if (!currentTopic) {
+    showNotif('⚠️ בחר סוג דבר תורה תחילה');
+    return;
+  }
+
+  const apiKey = localStorage.getItem('anthropicKey') || document.getElementById('apiKeyInput').value.trim();
+  if (!apiKey) {
+    showNotif('⚠️ הכנס מפתח API');
+    document.getElementById('apiKeyInput').focus();
+    return;
+  }
+
+  if (currentTopic === 'special' && !document.getElementById('specialEvent').value.trim()) {
+    showNotif('⚠️ תאר את האירוע המיוחד');
+    document.getElementById('specialEvent').focus();
+    return;
+  }
+
+  const loadingMsgs = [
+    'מחפש בעולמות עליונים... 📖',
+    'שואב תורה ממקורות עתיקים... 🕍',
+    'מרכיב דבר תורה מיוחד... ✨',
+    'שואל את החכמים... 🧠',
+    'מחבר פסוקים ורעיונות... 🌟',
+  ];
+
+  document.getElementById('generateBtn').disabled = true;
+  document.getElementById('loadingArea').classList.add('show');
+  document.getElementById('resultCard').classList.remove('show');
+
+  let msgIdx = 0;
+  const loadInterval = setInterval(() => {
+    document.getElementById('loadingText').textContent = loadingMsgs[msgIdx % loadingMsgs.length];
+    msgIdx++;
+  }, 2000);
+
+  try {
+    const prompt = buildPrompt();
+
+    const systemPrompt = `אתה מלמד תורה מומחה, בעל ידע עצום בתנ"ך, גמרא, מדרש, הלכה ואגדה.
+אתה יודע לדבר לכל שכבות הציבור — מילדי גן ועד אברכי ישיבה.
+כתוב בעברית תקנית ויפה.
+השתמש בניקוד כאשר מבוקש (לילדים ומורים).
+התאם את הרמה בדיוק לבקשה.
+הדברים צריכים להיות מרגשים, אמיתיים ומושרשים במקורות.`;
+
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: prompt }
+        ],
+        max_tokens: 2000,
+        temperature: 0.9
+      })
+    });
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error?.message || `שגיאה ${response.status}`);
+    }
+
+    const data = await response.json();
+    const text = data.choices[0].message.content;
+
+    displayResult(text);
+
+  } catch (err) {
+    showNotif('❌ שגיאה: ' + err.message);
+    console.error(err);
+  } finally {
+    clearInterval(loadInterval);
+    document.getElementById('loadingArea').classList.remove('show');
+    document.getElementById('generateBtn').disabled = false;
+  }
+}
+
+// =========================================
+// DISPLAY
+// =========================================
+function displayResult(text) {
+  currentResult = text;
+  document.getElementById('likeBtn').classList.remove('btn-liked');
+  document.getElementById('likeBtn').textContent = '❤️ אהבתי ממש';
+
+  const tagMap = {
+    weekly: '📜 פרשת ' + currentParasha?.name,
+    event: '🎉 ' + (document.getElementById('eventSelect')?.value || 'אירוע'),
+    special: '⭐ אירוע מיוחד',
+    summary: '📋 תקציר פרשה',
+    riddles: '🧩 חידות'
+  };
+  document.getElementById('resultTag').textContent = tagMap[currentTopic] || 'דבר תורה';
+
+  const lvlMap = { קצר: 'משהו בקטנה', בינוני: "שיעור א'", מעמיק: 'בייניש רציני', קל: 'לילדים', קשה: 'למבוגרים' };
+  document.getElementById('resultMeta').textContent =
+    `רמה: ${lvlMap[currentLevel[currentTopic]] || currentLevel[currentTopic]}`;
+
+  if (currentTopic === 'riddles') {
+    // Parse riddles
+    document.getElementById('resultIdea').textContent = `🧩 חידות על פרשת ${currentParasha?.name}`;
+    document.getElementById('resultBody').textContent = '';
+
+    const riddlesContainer = document.getElementById('riddlesContainer');
+    riddlesContainer.innerHTML = '';
+
+    const riddles = [];
+    const lines = text.split('\n');
+    let currentQ = '', currentA = '';
+
+    for (const line of lines) {
+      if (line.startsWith('RIDDLE:')) {
+        if (currentQ) riddles.push({ q: currentQ, a: currentA });
+        currentQ = line.replace('RIDDLE:', '').trim();
+        currentA = '';
+      } else if (line.startsWith('ANSWER:')) {
+        currentA = line.replace('ANSWER:', '').trim();
+      }
+    }
+    if (currentQ) riddles.push({ q: currentQ, a: currentA });
+
+    riddles.forEach((r, i) => {
+      const div = document.createElement('div');
+      div.className = 'riddle-item';
+      div.innerHTML = `
+        <div class="riddle-q">❓ <strong>חידה ${i+1}:</strong> ${r.q}</div>
+        <button class="riddle-answer-btn" onclick="toggleAnswer(${i})">💡 הצג תשובה</button>
+        <div class="riddle-answer" id="ans-${i}">✅ ${r.a}</div>
+      `;
+      riddlesContainer.appendChild(div);
+    });
+
+    currentIdea = `חידות על פרשת ${currentParasha?.name}`;
+
+  } else if (currentTopic === 'summary') {
+    document.getElementById('resultIdea').textContent = `📖 תקציר פרשת ${currentParasha?.name}`;
+    document.getElementById('resultBody').textContent = text;
+    document.getElementById('riddlesContainer').innerHTML = '';
+    currentIdea = `תקציר פרשת ${currentParasha?.name}`;
+
+  } else {
+    // Split into idea and body
+    const parts = text.split('---');
+    if (parts.length >= 2) {
+      currentIdea = parts[0].trim();
+      const body = parts.slice(1).join('---').trim();
+      document.getElementById('resultIdea').textContent = currentIdea;
+      document.getElementById('resultBody').textContent = body;
+    } else {
+      // Try splitting by newline
+      const lines = text.split('\n').filter(l => l.trim());
+      if (lines.length > 2) {
+        currentIdea = lines[0] + '\n' + (lines[1] || '');
+        document.getElementById('resultIdea').textContent = currentIdea;
+        document.getElementById('resultBody').textContent = lines.slice(2).join('\n');
+      } else {
+        document.getElementById('resultIdea').textContent = '';
+        document.getElementById('resultBody').textContent = text;
+        currentIdea = '';
+      }
+    }
+    document.getElementById('riddlesContainer').innerHTML = '';
+  }
+
+  document.getElementById('resultCard').classList.add('show');
+  document.getElementById('resultCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  // Add to export data
+  exportData.push({
+    timestamp: new Date().toLocaleString('he-IL'),
+    topic: document.getElementById('resultTag').textContent,
+    parasha: currentParasha?.name || '',
+    level: currentLevel[currentTopic],
+    idea: currentIdea,
+    content: currentResult,
+    liked: false
+  });
+}
+
+function toggleAnswer(idx) {
+  const ans = document.getElementById('ans-' + idx);
+  ans.classList.toggle('show');
+}
+
+// =========================================
+// ACTIONS
+// =========================================
+function handleLike() {
+  const btn = document.getElementById('likeBtn');
+  if (!btn.classList.contains('btn-liked')) {
+    btn.classList.add('btn-liked');
+    btn.textContent = '💛 אהבתי!';
+    likedCount++;
+    if (exportData.length > 0) exportData[exportData.length - 1].liked = true;
+    document.getElementById('likedCount').textContent = `❤️ ${likedCount} דברי תורה שאהבת בסשן הזה`;
+    showNotif('❤️ מצוין! נרשם בלב');
+  }
+}
+
+function retryGenerate() {
+  generateTorah();
+}
+
+function openShareModal() {
+  document.getElementById('shareModal').classList.add('show');
+}
+
+function closeShareModal(e) {
+  if (!e || e.target === document.getElementById('shareModal')) {
+    document.getElementById('shareModal').classList.remove('show');
+  }
+}
+
+function sendWhatsApp() {
+  const name = document.getElementById('friendName').value.trim();
+  let phone = document.getElementById('friendPhone').value.trim().replace(/\D/g, '');
+
+  if (!phone) {
+    showNotif('⚠️ הכנס מספר טלפון');
+    return;
+  }
+
+  // Format Israeli number
+  if (phone.startsWith('0')) phone = '972' + phone.substring(1);
+  if (!phone.startsWith('972')) phone = '972' + phone;
+
+  const greeting = name ? `היי ${name}! ` : '';
+  const topicName = document.getElementById('resultTag').textContent;
+  const fullContent = currentResult || '';
+
+  const msg = encodeURIComponent(
+    `${greeting}שלחתי לך דבר תורה 🕎\n\n` +
+    `📖 ${topicName}\n\n` +
+    `${fullContent}\n\n` +
+    `─────────────────\n` +
+    `✨ הופק ע"י מחולל דברי תורה\n` +
+    `נתנאל הזה — רעיונות גדולים לעסקים קטנים`
+  );
+
+  window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
+  closeShareModal();
+  showNotif('✅ פותח וואטסאפ...');
+}
+
+function exportToExcel() {
+  if (exportData.length === 0) {
+    showNotif('⚠️ אין עדיין דברי תורה לייצא');
+    return;
+  }
+
+  const ws = XLSX.utils.json_to_sheet(exportData.map(d => ({
+    'תאריך ושעה': d.timestamp,
+    'נושא': d.topic,
+    'פרשה': d.parasha,
+    'רמה': d.level,
+    'רעיון מרכזי': d.idea,
+    'תוכן מלא': d.content,
+    'אהבתי': d.liked ? 'כן ❤️' : 'לא'
+  })));
+
+  ws['!cols'] = [
+    { wch: 20 }, { wch: 20 }, { wch: 15 }, { wch: 12 },
+    { wch: 40 }, { wch: 80 }, { wch: 10 }
+  ];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'דברי תורה');
+  XLSX.writeFile(wb, `דברי_תורה_${new Date().toLocaleDateString('he-IL').replace(/\//g, '-')}.xlsx`);
+  showNotif('✅ הקובץ הורד בהצלחה!');
+}
+
+// =========================================
+// ADMIN
+// =========================================
+const ADMIN_USER = 'admin';
+const ADMIN_PASS = 'natanel2024';
+
+function openAdminModal() {
+  document.getElementById('adminModal').classList.add('show');
+  document.getElementById('adminLoginSection').style.display = 'block';
+  document.getElementById('adminPanel').style.display = 'none';
+  document.getElementById('adminUser').value = '';
+  document.getElementById('adminPass').value = '';
+}
+
+function closeAdminModal(e) {
+  if (!e || e.target === document.getElementById('adminModal')) {
+    document.getElementById('adminModal').classList.remove('show');
+  }
+}
+
+function adminLogin() {
+  const u = document.getElementById('adminUser').value.trim();
+  const p = document.getElementById('adminPass').value.trim();
+  if (u === ADMIN_USER && p === ADMIN_PASS) {
+    document.getElementById('adminLoginSection').style.display = 'none';
+    document.getElementById('adminPanel').style.display = 'block';
+    document.getElementById('adminCount').textContent = exportData.length;
+  } else {
+    showNotif('❌ שם משתמש או סיסמה שגויים');
+  }
+}
+
+function clearExportData() {
+  if (confirm('למחוק את כל הנתונים השמורים?')) {
+    exportData = [];
+    document.getElementById('adminCount').textContent = 0;
+    showNotif('🗑️ הנתונים נמחקו');
+  }
+}
+
+// =========================================
+// PDF
+// =========================================
+function downloadPDF() {
+  if (!currentResult) { showNotif('⚠️ אין תוכן להורדה'); return; }
+
+  const topicName = document.getElementById('resultTag')?.textContent || 'דבר תורה';
+  const parasha = currentParasha?.name || '';
+  const dateStr = new Date().toLocaleDateString('he-IL');
+  const contentHtml = document.getElementById('resultBody')?.innerHTML || currentResult.replace(/\n/g, '<br>');
+
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="UTF-8">
+<title>דבר תורה — ${parasha}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'Frank Ruhl Libre', serif;
+    background: #fff;
+    color: #1a1a2e;
+    padding: 40px;
+    direction: rtl;
+  }
+  .page-header {
+    text-align: center;
+    border-bottom: 3px solid #c8a84b;
+    padding-bottom: 20px;
+    margin-bottom: 28px;
+  }
+  .logo { font-size: 28px; margin-bottom: 4px; }
+  .title { font-size: 26px; font-weight: 900; color: #1a1a2e; }
+  .subtitle { font-size: 12px; color: #888; margin-top: 4px; }
+  .tag {
+    display: inline-block;
+    background: #c8a84b;
+    color: #1a1a2e;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 5px 18px;
+    border-radius: 20px;
+    margin: 14px auto 6px;
+  }
+  .date { font-size: 11px; color: #aaa; margin-bottom: 10px; }
+  .content {
+    font-size: 15px;
+    line-height: 1.9;
+    color: #1a1a2e;
+    background: #f9f6ef;
+    border-right: 4px solid #c8a84b;
+    padding: 24px 28px;
+    border-radius: 6px;
+    white-space: pre-wrap;
+  }
+  .footer {
+    margin-top: 30px;
+    text-align: center;
+    font-size: 10px;
+    color: #bbb;
+    border-top: 1px solid #eee;
+    padding-top: 14px;
+  }
+  @media print {
+    body { padding: 20px; }
+    .no-print { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="page-header">
+  <div class="logo">🕎</div>
+  <div class="title">מחולל דברי תורה</div>
+  <div class="subtitle">נתנאל הזה — רעיונות גדולים לעסקים קטנים</div>
+  <div class="tag">${topicName}${parasha ? ' | ' + parasha : ''}</div>
+  <div class="date">${dateStr}</div>
+</div>
+<div class="content">${contentHtml}</div>
+<div class="footer">
+  הופק ע"י מחולל דברי תורה &nbsp;|&nbsp; יש לבדוק עם רב לפני הלכה למעשה
+</div>
+<script>
+  window.onload = function() { window.print(); }
+<\/script>
+</body>
+</html>`);
+  win.document.close();
+  showNotif('✅ פותח חלון הדפסה לשמירת PDF...');
+}
+
+// =========================================
+// START
+// =========================================
+init();
+</script>
+</body>
+</html>
