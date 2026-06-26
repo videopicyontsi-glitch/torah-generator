@@ -7,10 +7,10 @@ async function countHit(key) {
 }
 
 const MODELS = [
-  'meta-llama/llama-3.3-70b-instruct:free',
-  'meta-llama/llama-3.1-70b-instruct:free',
-  'google/gemma-2-9b-it:free',
   'meta-llama/llama-3.1-8b-instruct:free',
+  'google/gemma-2-9b-it:free',
+  'mistralai/mistral-7b-instruct:free',
+  'qwen/qwen-2.5-7b-instruct:free',
 ];
 
 async function callAI(body) {
@@ -27,8 +27,12 @@ async function callAI(body) {
     });
 
     const data = await res.json();
+    const errMsg = data.error?.message || '';
 
-    if (res.status === 429 || data.error?.code === 429) continue;
+    // Skip to next model on rate limit or unavailable
+    if (res.status === 429 || res.status === 403 ||
+        errMsg.includes('unavailable') || errMsg.includes('rate limit') ||
+        errMsg.includes('decommissioned')) continue;
 
     return { status: res.status, data };
   }
