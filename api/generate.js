@@ -10,7 +10,6 @@ const MODELS = [
   'google/gemma-4-26b-a4b-it:free',
   'google/gemma-4-31b-it:free',
   'openai/gpt-oss-120b:free',
-  'qwen/qwen3-next-80b-a3b-instruct:free',
 ];
 
 async function callAI(body) {
@@ -35,7 +34,6 @@ async function callAI(body) {
     if (res.status === 429 || res.status === 404 ||
         errMsg.includes('rate limit') || errMsg.includes('no endpoints') ||
         errMsg.includes('decommissioned') || errMsg.includes('unavailable for free') ||
-        errMsg.includes('provider returned error') ||
         errMsg.includes('context length')) continue;
 
     return { status: res.status, data };
