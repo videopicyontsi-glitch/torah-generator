@@ -8,7 +8,7 @@ async function countHit(key) {
 
 const MODELS = [
   'llama-3.3-70b-versatile',
-  'llama-3.1-70b-versatile',
+  'llama3-70b-8192',
   'gemma2-9b-it',
   'llama-3.1-8b-instant',
 ];
