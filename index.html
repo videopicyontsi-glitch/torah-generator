@@ -499,7 +499,10 @@
 
 <!-- Top bar -->
 <div class="container">
-  <div class="api-banner" id="apiBanner" style="justify-content:flex-start">
+  <div class="api-banner" id="apiBanner" style="justify-content:space-between">
+    <div style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)">
+      👁️ <span id="visitorCounter" style="color:var(--gold);font-weight:700">...</span> כניסות לאתר
+    </div>
     <button class="api-save-btn" style="background:rgba(200,168,75,0.2);border:1px solid var(--gold)" onclick="openAdminModal()">🔐 מנהל</button>
   </div>
 
@@ -770,10 +773,20 @@
     </div>
     <div id="adminPanel" style="display:none">
       <p style="color:var(--gold);margin-bottom:16px">✅ מחובר כמנהל</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;text-align:center">
+        <div style="background:rgba(100,120,255,0.1);border:1px solid rgba(100,120,255,0.3);border-radius:8px;padding:12px">
+          <div style="font-size:22px;font-weight:900;color:#8899ff" id="statVisits">...</div>
+          <div style="font-size:11px;color:var(--muted)">👁️ כניסות לאתר</div>
+        </div>
+        <div style="background:rgba(200,168,75,0.1);border:1px solid rgba(200,168,75,0.3);border-radius:8px;padding:12px">
+          <div style="font-size:22px;font-weight:900;color:var(--gold)" id="statGenerations">...</div>
+          <div style="font-size:11px;color:var(--muted)">✨ הפקות דברי תורה</div>
+        </div>
+      </div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:18px;text-align:center">
         <div style="background:rgba(200,168,75,0.1);border:1px solid rgba(200,168,75,0.3);border-radius:8px;padding:12px">
           <div style="font-size:22px;font-weight:900;color:var(--gold)" id="statTotal">0</div>
-          <div style="font-size:11px;color:var(--muted)">סה"כ הופקו</div>
+          <div style="font-size:11px;color:var(--muted)">בסשן זה</div>
         </div>
         <div style="background:rgba(76,175,140,0.1);border:1px solid rgba(76,175,140,0.3);border-radius:8px;padding:12px">
           <div style="font-size:22px;font-weight:900;color:#4caf8c" id="statLiked">0</div>
@@ -784,7 +797,7 @@
           <div style="font-size:11px;color:var(--muted)">לא אהבו</div>
         </div>
       </div>
-      <p style="color:var(--muted);font-size:13px;margin-bottom:14px">📲 אנשי קשר שקיבלו דבר תורה בוואטסאפ: <strong id="adminCount" style="color:var(--text)">0</strong></p>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:14px">📲 אנשי קשר שקיבלו בוואטסאפ: <strong id="adminCount" style="color:var(--text)">0</strong></p>
       <button class="modal-send-btn" onclick="exportToExcel()">📊 הורד אקסל (שמות וטלפונים)</button>
       <button class="modal-send-btn" style="margin-top:10px;background:rgba(233,69,96,0.2);border:1px solid var(--accent)" onclick="clearExportData()">🗑️ נקה נתונים</button>
     </div>
@@ -898,6 +911,7 @@ let currentParasha = null;
 // =========================================
 function init() {
   currentParasha = getCurrentParasha();
+  trackVisit();
   document.getElementById('parashName').textContent = 'פרשת ' + currentParasha.name;
   document.getElementById('parashDate').textContent = 'שבת ' + getNextShabat();
   document.getElementById('weeklyParashName').textContent = currentParasha.name;
@@ -1378,6 +1392,7 @@ function adminLogin() {
     document.getElementById('statTotal').textContent = statsData.total;
     document.getElementById('statLiked').textContent = statsData.liked;
     document.getElementById('statNotLiked').textContent = statsData.notLiked;
+    fetchServerStats();
   } else {
     showNotif('❌ שם משתמש או סיסמה שגויים');
   }
@@ -1485,6 +1500,33 @@ function downloadPDF() {
 </html>`);
   win.document.close();
   showNotif('✅ פותח חלון הדפסה לשמירת PDF...');
+}
+
+// =========================================
+// VISIT TRACKING & SERVER STATS
+// =========================================
+async function trackVisit() {
+  try {
+    const NS = 'torah-generator-natanel';
+    const r = await fetch(`https://api.counterapi.dev/v1/${NS}/visits/up`);
+    const d = await r.json();
+    const count = d.count ?? '—';
+    document.getElementById('visitorCounter').textContent = count.toLocaleString();
+  } catch {
+    document.getElementById('visitorCounter').textContent = '—';
+  }
+}
+
+async function fetchServerStats() {
+  try {
+    const r = await fetch('/api/generate');
+    const d = await r.json();
+    document.getElementById('statVisits').textContent = (d.visits ?? 0).toLocaleString();
+    document.getElementById('statGenerations').textContent = (d.generations ?? 0).toLocaleString();
+  } catch {
+    document.getElementById('statVisits').textContent = '—';
+    document.getElementById('statGenerations').textContent = '—';
+  }
 }
 
 // =========================================
