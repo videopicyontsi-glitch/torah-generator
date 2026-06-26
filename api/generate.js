@@ -2,8 +2,36 @@ const NS = 'torah-generator-natanel';
 
 async function countHit(key) {
   try {
-    await fetch(`https://api.counterapi.dev/v1/${NS}/${key}/up`, { method: 'GET' });
+    await fetch(`https://api.counterapi.dev/v1/${NS}/${key}/up`);
   } catch {}
+}
+
+const MODELS = [
+  'llama-3.3-70b-versatile',
+  'llama-3.1-70b-versatile',
+  'gemma2-9b-it',
+  'llama-3.1-8b-instant',
+];
+
+async function callGroq(body) {
+  for (const model of MODELS) {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
+      },
+      body: JSON.stringify({ ...body, model })
+    });
+
+    const data = await res.json();
+
+    // Rate limited — try next model
+    if (res.status === 429 || data.error?.code === 'rate_limit_exceeded') continue;
+
+    return { status: res.status, data };
+  }
+  return { status: 429, data: { error: { message: 'כל המודלים הגיעו למגבלה. נסה שוב מחר.' } } };
 }
 
 export default async function handler(req, res) {
@@ -13,7 +41,6 @@ export default async function handler(req, res) {
 
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  // Stats endpoint
   if (req.method === 'GET') {
     try {
       const [v, g] = await Promise.all([
@@ -30,18 +57,8 @@ export default async function handler(req, res) {
 
   try {
     countHit('generations');
-
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
-      },
-      body: JSON.stringify(req.body)
-    });
-
-    const data = await response.json();
-    res.status(response.status).json(data);
+    const { status, data } = await callGroq(req.body);
+    res.status(status).json(data);
   } catch (err) {
     res.status(500).json({ error: { message: err.message } });
   }
