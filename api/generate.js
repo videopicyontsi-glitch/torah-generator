@@ -9,6 +9,7 @@ async function countHit(key) {
 async function callGroq(body) {
   const keys = [
     process.env.GROQ_API_KEY_1,
+    process.env.GROQ_API_KEY,
     process.env.GROQ_API_KEY_2,
     process.env.GROQ_API_KEY_3,
   ].filter(Boolean);
