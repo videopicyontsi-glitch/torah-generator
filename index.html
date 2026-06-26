@@ -642,6 +642,11 @@
         <option value="8" selected>8 חידות</option>
         <option value="12">12 חידות</option>
       </select>
+      <label>סגנון חידות:</label>
+      <select id="riddleStyle">
+        <option value="תנ״כי">📖 חידות תנ״כיות (ידע על הפרשה)</option>
+        <option value="הגיון">🧠 חידות הגיון (חשיבה לוגית)</option>
+      </select>
     </div>
 
     <!-- Advanced Settings -->
@@ -888,6 +893,7 @@ let currentIdea = '';
 let likedCount = 0;
 let exportData = []; // {name, phone, timestamp, topic}
 let statsData = { liked: 0, notLiked: 0, total: 0 };
+let riddleAttempt = 0;
 let currentParasha = null;
 
 // =========================================
@@ -998,7 +1004,7 @@ function buildPrompt() {
   const levelInstructions = {
     'קצר': 'קצר ותמציתי — עד 3-4 משפטים, מוכן לאמירה תוך דקה אחת. מרכזי ועוצמתי.',
     'קל': 'פשוט ונגיש לכל, עם דוגמאות קלות. 3-4 שאלות.',
-    'בינוני': 'בינוני — 2-3 דקות. עם ציטוט מקרא ורעיון מעניין. 5-7 שאלות.',
+    'בינוני': 'שיעור א׳ — 2-3 דקות. התחל ברעיון מרכזי ברור, הרחב עם ציטוט מקרא ודוגמה חיה, ואז הצג 2-3 שאלות למחשבה עם תשובות מפורטות לצד כל שאלה.',
     'מעמיק': 'מעמיק ומפורט — 5-7 דקות. עם מקורות, מדרש או גמרא, ניתוח ומסר ברור. בסוף: סיכום המהלך בנקודות (•) ומוסר השכל — לימוד לנו.',
     'קשה': 'קשה ומאתגר, רמת גבוהה, דורש ידע נרחב. 8-12 שאלות.',
   };
@@ -1065,9 +1071,18 @@ ${advContext}
 
   } else if (currentTopic === 'riddles') {
     const count = document.getElementById('riddleCount').value;
+    const riddleStyle = document.getElementById('riddleStyle')?.value || '';
+    const isLogic = riddleStyle.includes('הגיון') || riddleStyle.includes('לוגי');
+    const styleDesc = isLogic
+      ? 'חידות הגיון — לא ידע אלא חשיבה: פתרון מחייב היסק לוגי, לא ידע תנ"כי. ניתן לקחת סיפור מהפרשה כרקע ולבנות עליו חידת הגיון.'
+      : `חידות תנ"כיות — על דמויות, מספרים, מקומות, מילות מפתח בפרשה.`;
+    const attemptNote = riddleAttempt > 0
+      ? `\nחשוב מאוד: זה ניסיון מספר ${riddleAttempt + 1}. תן חידות שונות לחלוטין — נושאים אחרים, דמויות אחרות, זוויות אחרות. אסור לחזור על חידה שכבר נשאלה.`
+      : '';
     userPrompt = `כתוב ${count} חידות על פרשת ${parashName}.
 רמת קושי: ${level}
-${advContext}
+סגנון: ${styleDesc}
+${advContext}${attemptNote}
 
 פורמט חובה — ${count} חידות, כל אחת בפורמט הזה בדיוק:
 RIDDLE: [שאלת החידה]
@@ -1075,7 +1090,7 @@ ANSWER: [תשובה מלאה]
 
 ---
 
-חשוב: חידות מגוונות — על דמויות, מספרים, מקומות, מילות מפתח. החידות צריכות להיות מהנות ומאתגרות ברמה המבוקשת.`;
+החידות צריכות להיות מהנות ומאתגרות ברמה המבוקשת.`;
   }
 
   return userPrompt;
@@ -1285,6 +1300,7 @@ function handleLike() {
 }
 
 function retryGenerate() {
+  if (currentTopic === 'riddles') riddleAttempt++;
   generateTorah();
 }
 
