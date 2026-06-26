@@ -7,31 +7,32 @@ async function countHit(key) {
 }
 
 const MODELS = [
-  'llama-3.3-70b-versatile',
-  'llama3-70b-8192',
-  'gemma2-9b-it',
-  'llama-3.1-8b-instant',
+  'meta-llama/llama-3.3-70b-instruct:free',
+  'meta-llama/llama-3.1-70b-instruct:free',
+  'google/gemma-2-9b-it:free',
+  'meta-llama/llama-3.1-8b-instruct:free',
 ];
 
-async function callGroq(body) {
+async function callAI(body) {
   for (const model of MODELS) {
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
+        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'HTTP-Referer': 'https://torah-generator.vercel.app',
+        'X-Title': 'מחולל דברי תורה'
       },
       body: JSON.stringify({ ...body, model })
     });
 
     const data = await res.json();
 
-    // Rate limited — try next model
-    if (res.status === 429 || data.error?.code === 'rate_limit_exceeded') continue;
+    if (res.status === 429 || data.error?.code === 429) continue;
 
     return { status: res.status, data };
   }
-  return { status: 429, data: { error: { message: 'כל המודלים הגיעו למגבלה. נסה שוב מחר.' } } };
+  return { status: 429, data: { error: { message: 'כל המודלים הגיעו למגבלה. נסה שוב מאוחר יותר.' } } };
 }
 
 export default async function handler(req, res) {
@@ -57,7 +58,7 @@ export default async function handler(req, res) {
 
   try {
     countHit('generations');
-    const { status, data } = await callGroq(req.body);
+    const { status, data } = await callAI(req.body);
     res.status(status).json(data);
   } catch (err) {
     res.status(500).json({ error: { message: err.message } });
