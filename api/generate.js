@@ -7,10 +7,10 @@ async function countHit(key) {
 }
 
 const MODELS = [
-  'meta-llama/llama-3.1-8b-instruct:free',
-  'google/gemma-2-9b-it:free',
+  'deepseek/deepseek-r1-distill-llama-70b:free',
   'mistralai/mistral-7b-instruct:free',
-  'qwen/qwen-2.5-7b-instruct:free',
+  'meta-llama/llama-3.2-3b-instruct:free',
+  'microsoft/phi-3-mini-128k-instruct:free',
 ];
 
 async function callAI(body) {
@@ -27,12 +27,13 @@ async function callAI(body) {
     });
 
     const data = await res.json();
-    const errMsg = data.error?.message || '';
+    const errMsg = (data.error?.message || '').toLowerCase();
 
-    // Skip to next model on rate limit or unavailable
-    if (res.status === 429 || res.status === 403 ||
+    // Skip to next model on any availability/rate error
+    if (res.status === 429 || res.status === 403 || res.status === 404 ||
         errMsg.includes('unavailable') || errMsg.includes('rate limit') ||
-        errMsg.includes('decommissioned')) continue;
+        errMsg.includes('decommissioned') || errMsg.includes('no endpoints') ||
+        errMsg.includes('not found') || errMsg.includes('free')) continue;
 
     return { status: res.status, data };
   }
