@@ -28,12 +28,13 @@ async function callAI(body) {
 
     const data = await res.json();
     const errMsg = (data.error?.message || '').toLowerCase();
+    console.log(`[${model}] status=${res.status} err="${errMsg.slice(0,80)}"`);
 
-    // Skip to next model on any availability/rate error
-    if (res.status === 429 || res.status === 403 || res.status === 404 ||
-        errMsg.includes('unavailable') || errMsg.includes('rate limit') ||
-        errMsg.includes('decommissioned') || errMsg.includes('no endpoints') ||
-        errMsg.includes('not found') || errMsg.includes('free')) continue;
+    // Skip to next model on availability/rate errors only
+    if (res.status === 429 || res.status === 404 ||
+        errMsg.includes('rate limit') || errMsg.includes('no endpoints') ||
+        errMsg.includes('decommissioned') || errMsg.includes('unavailable for free') ||
+        errMsg.includes('context length')) continue;
 
     return { status: res.status, data };
   }
