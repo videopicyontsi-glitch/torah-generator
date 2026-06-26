@@ -6,39 +6,34 @@ async function countHit(key) {
   } catch {}
 }
 
-const MODELS = [
-  'google/gemma-4-26b-a4b-it:free',
-  'google/gemma-4-31b-it:free',
-  'openai/gpt-oss-120b:free',
-];
+async function callGroq(body) {
+  const keys = [
+    process.env.GROQ_API_KEY_1,
+    process.env.GROQ_API_KEY_2,
+    process.env.GROQ_API_KEY_3,
+  ].filter(Boolean);
 
-async function callAI(body) {
-  for (const model of MODELS) {
-    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        'HTTP-Referer': 'https://torah-generator.vercel.app',
-        'X-Title': 'Torah Generator'
-      },
-      body: JSON.stringify({ ...body, model })
-    });
+  for (const key of keys) {
+    let res, data;
+    try {
+      res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${key}`
+        },
+        body: JSON.stringify({ ...body, model: 'llama-3.3-70b-versatile' })
+      });
+      data = await res.json();
+    } catch { continue; }
 
-    let data;
-    try { data = await res.json(); } catch { continue; }
-
-    const errMsg = (data.error?.message || '').toLowerCase();
-    console.log(`[${model}] status=${res.status} err="${errMsg.slice(0,80)}"`);
-
-    if (res.status === 429 || res.status === 404 ||
-        errMsg.includes('rate limit') || errMsg.includes('no endpoints') ||
-        errMsg.includes('decommissioned') || errMsg.includes('unavailable for free') ||
-        errMsg.includes('context length')) continue;
+    // Rate limited — try next key
+    if (res.status === 429) continue;
 
     return { status: res.status, data };
   }
-  return { status: 429, data: { error: { message: 'כל המודלים הגיעו למגבלה. נסה שוב מאוחר יותר.' } } };
+
+  return { status: 429, data: { error: { message: 'המגבלה היומית הגיעה לסיומה. נסה מחר.' } } };
 }
 
 export default async function handler(req, res) {
@@ -64,7 +59,7 @@ export default async function handler(req, res) {
 
   try {
     countHit('generations');
-    const { status, data } = await callAI(req.body);
+    const { status, data } = await callGroq(req.body);
     res.status(status).json(data);
   } catch (err) {
     res.status(500).json({ error: { message: err.message } });
