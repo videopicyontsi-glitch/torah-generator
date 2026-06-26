@@ -7,10 +7,10 @@ async function countHit(key) {
 }
 
 const MODELS = [
-  'deepseek/deepseek-r1-distill-llama-70b:free',
-  'mistralai/mistral-7b-instruct:free',
-  'meta-llama/llama-3.2-3b-instruct:free',
-  'microsoft/phi-3-mini-128k-instruct:free',
+  'openai/gpt-oss-120b:free',
+  'nvidia/nemotron-3-super-120b-a12b:free',
+  'google/gemma-4-26b-a4b-it:free',
+  'google/gemma-4-31b-it:free',
 ];
 
 async function callAI(body) {
