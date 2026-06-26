@@ -733,6 +733,10 @@
       <button class="action-btn btn-share" onclick="openShareModal()">📲 שתף לוואטסאפ</button>
       <button class="action-btn" style="background:rgba(200,168,75,0.15);border:1px solid var(--gold);color:var(--gold)" onclick="downloadPDF()">📄 הורד PDF</button>
     </div>
+    <div id="verifyArea" style="display:none;margin-top:10px">
+      <button id="verifyBtn" onclick="verifySources()" style="width:100%;padding:10px;background:rgba(100,180,255,0.1);border:1px solid rgba(100,180,255,0.4);border-radius:8px;color:#88bbff;cursor:pointer;font-size:14px">🔍 בדוק אמינות המקורות</button>
+      <div id="verifyResult" style="display:none;margin-top:10px;background:rgba(0,0,0,0.2);border-radius:8px;padding:14px;font-size:13px;line-height:1.8;color:var(--text)"></div>
+    </div>
     <div class="liked-count" id="likedCount"></div>
   </div>
 
@@ -1141,7 +1145,13 @@ async function generateTorah() {
 כתוב בעברית תקנית ויפה.
 השתמש בניקוד כאשר מבוקש (לילדים ומורים).
 התאם את הרמה בדיוק לבקשה.
-הדברים צריכים להיות מרגשים, אמיתיים ומושרשים במקורות.`;
+הדברים צריכים להיות מרגשים, אמיתיים ומושרשים במקורות.
+
+⚠️ כלל ברזל בנושא מקורות:
+- אל תצטט פסוק אם אינך בטוח במאה אחוז שהוא מופיע בתורה כך בדיוק. עדיף לכתוב "וכרוח הכתוב" או "כעין מה שנאמר" מאשר לצטט ציטוט שגוי.
+- אל תמציא מסכתות, דפים, פרקים, שמות מדרשים או שמות ספרים שאינך בטוח בהם. כתוב "חז"ל אומרים" בלי מיקום מדויק אם אינך בטוח.
+- אל תמציא שמות של ראשונים/אחרונים שכתבו על נושא מסוים אם אינך בטוח. כתוב "יש שכתבו" במקום.
+- פסוק שאינך בטוח בו — אל תצטט. המקור חשוב יותר מהציטוט המדויק.`;
 
     const response = await fetch('/api/generate', {
       method: 'POST',
@@ -1265,6 +1275,19 @@ function displayResult(text) {
   }
 
   document.getElementById('resultCard').classList.add('show');
+  // Show verify button only for levels with sources
+  const lvl = currentLevel[currentTopic];
+  const verifyArea = document.getElementById('verifyArea');
+  const verifyBtn = document.getElementById('verifyBtn');
+  const verifyResult = document.getElementById('verifyResult');
+  if (['מעמיק','דרשה','בינוני'].includes(lvl)) {
+    verifyArea.style.display = 'block';
+    verifyBtn.disabled = false;
+    verifyBtn.textContent = '🔍 בדוק אמינות המקורות';
+    verifyResult.style.display = 'none';
+  } else {
+    verifyArea.style.display = 'none';
+  }
   document.getElementById('resultCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   // Track stats
@@ -1500,6 +1523,42 @@ function downloadPDF() {
 </html>`);
   win.document.close();
   showNotif('✅ פותח חלון הדפסה לשמירת PDF...');
+}
+
+// =========================================
+// SOURCE VERIFICATION
+// =========================================
+async function verifySources() {
+  if (!currentResult) return;
+  const btn = document.getElementById('verifyBtn');
+  const resultDiv = document.getElementById('verifyResult');
+  btn.disabled = true;
+  btn.textContent = '⏳ בודק מקורות...';
+  resultDiv.style.display = 'none';
+
+  try {
+    const response = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          { role: 'system', content: 'אתה עורך תורני מומחה. תפקידך לבדוק אמינות מקורות בטקסטים תורניים.' },
+          { role: 'user', content: `בדוק את הטקסט הבא ועבור כל פסוק, גמרא, מדרש או ספר שמוזכר — ציין האם הוא מדויק, קרוב לנכון, או מוטל בספק. אם משהו לא מדויק — תקן. אם אינך בטוח — אמור זאת. כתוב רשימה קצרה ובהירה בעברית.\n\nטקסט לבדיקה:\n${currentResult}` }
+        ],
+        max_tokens: 800,
+        temperature: 0.2
+      })
+    });
+    const data = await response.json();
+    const text = data.choices?.[0]?.message?.content || 'לא ניתן לבדוק כרגע.';
+    resultDiv.innerHTML = text.replace(/\n/g, '<br>');
+    resultDiv.style.display = 'block';
+    btn.textContent = '✅ בדיקה הושלמה';
+  } catch {
+    btn.textContent = '❌ שגיאה בבדיקה';
+    btn.disabled = false;
+  }
 }
 
 // =========================================
