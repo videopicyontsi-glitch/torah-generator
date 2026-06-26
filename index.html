@@ -474,7 +474,7 @@
 <body>
 <div class="stars"></div>
 
-<!-- Welcome Modal -->
+<!-- Welcome Modal — shown only if backend unavailable -->
 <div class="modal-overlay" id="welcomeModal" style="display:none;align-items:center;justify-content:center;z-index:999">
   <div class="modal" style="max-width:480px;text-align:center">
     <div style="font-size:48px;margin-bottom:12px">🕎</div>
@@ -497,16 +497,10 @@
   </div>
 </div>
 
-<!-- API Key Banner -->
+<!-- Top bar -->
 <div class="container">
-  <div class="api-banner" id="apiBanner">
-    <label>🔑 מפתח API של Groq (חינמי):</label>
-    <input type="password" id="apiKeyInput" placeholder="gsk_..." />
-    <button class="api-save-btn" onclick="saveApiKey()">שמור</button>
-    <button class="api-save-btn" style="margin-right:8px;background:rgba(200,168,75,0.2);border:1px solid var(--gold)" onclick="openAdminModal()">🔐 מנהל</button>
-  </div>
-  <div style="text-align:left;padding:4px 12px 6px">
-    <a href="https://console.groq.com/keys" target="_blank" style="color:var(--gold);font-size:12px;opacity:0.8;text-decoration:none">🔑 אין לך מפתח? לחץ כאן להשיג אחד חינם ←</a>
+  <div class="api-banner" id="apiBanner" style="justify-content:flex-start">
+    <button class="api-save-btn" style="background:rgba(200,168,75,0.2);border:1px solid var(--gold)" onclick="openAdminModal()">🔐 מנהל</button>
   </div>
 
   <!-- Header -->
@@ -910,32 +904,13 @@ function init() {
   document.getElementById('summaryParashName').textContent = currentParasha.name;
   document.getElementById('riddlesParashName').textContent = currentParasha.name;
 
-  // Load API key
-  const savedKey = localStorage.getItem('anthropicKey');
-  if (savedKey) {
-    document.getElementById('apiKeyInput').value = savedKey;
-    document.getElementById('apiBanner').style.background = 'rgba(76,175,140,0.1)';
-    document.getElementById('apiBanner').style.borderColor = 'rgba(76,175,140,0.4)';
-  } else {
-    // Show welcome modal for first-time visitors
-    const el = document.getElementById('welcomeModal');
-    el.style.display = 'flex';
-  }
 }
 
 function closeWelcome() {
   document.getElementById('welcomeModal').style.display = 'none';
 }
 
-function saveApiKey() {
-  const key = document.getElementById('apiKeyInput').value.trim();
-  if (key) {
-    localStorage.setItem('anthropicKey', key);
-    document.getElementById('apiBanner').style.background = 'rgba(76,175,140,0.1)';
-    document.getElementById('apiBanner').style.borderColor = 'rgba(76,175,140,0.4)';
-    showNotif('✅ מפתח נשמר');
-  }
-}
+function saveApiKey() {}
 
 function showNotif(msg) {
   const n = document.createElement('div');
@@ -1009,7 +984,13 @@ function buildPrompt() {
     'קל': 'פשוט ונגיש לכל, עם דוגמאות קלות. 3-4 שאלות.',
     'בינוני': 'שיעור א׳ — 2-3 דקות. התחל ברעיון מרכזי ברור, הרחב עם ציטוט מקרא ודוגמה חיה, ואז הצג 2-3 שאלות למחשבה עם תשובות מפורטות לצד כל שאלה.',
     'מעמיק': 'מעמיק ומפורט — 5-7 דקות. עם מקורות, מדרש או גמרא, ניתוח ומסר ברור. בסוף: סיכום המהלך בנקודות (•) ומוסר השכל — לימוד לנו.',
-    'דרשה': `דרשה של רב — 8-12 דקות. מבנה: (1) פתיחה עם שאלה על הפרשה, (2) מהלך עם לפחות 3 מקורות מדויקים (גמרא/מדרש/ראשונים/אחרונים עם שם המקור), (3) פיתוח הרעיון שלב אחר שלב, (4) חידוש ייחודי, (5) סיום עם מסר מעשי. ציין מקורות בצורה: "כמו שאמרו חז"ל ב[מסכת פרק]" / "וכך כתב ה[שם הספר]". הדרשה צריכה להיות ראויה לאמירה בבית כנסת.`,
+    'דרשה': `דרשה של רב לבית כנסת — רמה גבוהה. מבנה מחייב:
+1. פתיחה חדה — שאלה קשה על הפרשה או סתירה בין פסוקים שמייד מושכת את הקהל.
+2. מהלך מקורות — לפחות 5 מקורות מדויקים: ציין שמות מסכתות/דפים, מדרשים, ראשונים (רש"י/רמב"ן/ספורנו/אור החיים וכד׳), אחרונים (חפץ חיים/אור שמח/משך חכמה וכד׳). לדוגמה: "וכבר עמד על כך רש"י בד"ה [מילות הפסוק]", "הגמרא במסכת [שם] דף [מספר] אומרת...", "ה[שם הספר] מחדש...".
+3. בניית המהלך — כל מקור מוסיף שכבה: הצג קושיה, הבא מקור ראשון, העמק, הבא מקור נוסף שמחזק או מקשה, פתור בצורה מקורית.
+4. חידוש — רעיון שמחבר בין כל המקורות בצורה שאינה מובנת מאליה.
+5. סיום — מסר מעשי לחיי היום-יום שנובע ישירות מהמהלך.
+הדרשה צריכה לקחת 10-15 דקות אמירה ולהיות ראויה לרב בבית כנסת גדול.`,
     'קשה': 'קשה ומאתגר, רמת גבוהה, דורש ידע נרחב. 8-12 שאלות.',
   };
 
@@ -1084,13 +1065,14 @@ ${advContext}
 3. דוגמאות לסגנון: "אני מגיע לפה בלי רגליים, ונאמר עלי דבר שלא ייאמן — מה אני?", "הוא לא ראה אותי אך אני עצרתי אותו — מה קרה?", "מה הובטח ולא בוצע, נדחה ולא נשכח?"
 4. ניתן לצרף רמז בפסוק.`
       : `חידות ידע ישיר — על דמויות, מספרים, מקומות, מילות מפתח בפרשה.`;
-    const attemptNote = riddleAttempt > 0
-      ? `\nחשוב מאוד: זה ניסיון מספר ${riddleAttempt + 1}. תן חידות שונות לחלוטין — נושאים אחרים, דמויות אחרות, זוויות אחרות. אסור לחזור על חידה שכבר נשאלה.`
+    const usedThemes = riddleAttempt > 0
+      ? `\n⚠️ זהו ניסיון ${riddleAttempt + 1} — אסור בהחלט לחזור על נושאים, דמויות, מקומות או אירועים שכבר שימשו לחידה קודמת. חשוב על זוויות שלא נגענו בהן: עיתוי, מספרים, ניגודים, פרטים קטנים בפסוקים, דברים שלא קרו אך יכלו לקרות, השוואות בין דמויות.`
       : '';
-    userPrompt = `כתוב ${count} חידות על פרשת ${parashName}.
+    const varietyNote = `\nגיוון חובה: כל חידה תעסוק בהיבט אחר לחלוטין מהפרשה — אחת על עיתוי, אחת על סיבה, אחת על מספר, אחת על ניגוד, אחת על תוצאה וכד׳. אין שתי חידות על אותו נושא.`;
+    userPrompt = `כתוב ${count} חידות מגוונות על פרשת ${parashName}.
 רמת קושי: ${level}
 סגנון: ${styleDesc}
-${advContext}${attemptNote}
+${advContext}${usedThemes}${varietyNote}
 
 פורמט חובה — ${count} חידות, כל אחת בפורמט הזה בדיוק:
 RIDDLE: [שאלת החידה]
@@ -1098,7 +1080,7 @@ ANSWER: [תשובה מלאה]
 
 ---
 
-החידות צריכות להיות מהנות ומאתגרות ברמה המבוקשת.`;
+חובה: חידות מגוונות לחלוטין — כל חידה על היבט אחר בפרשה.`;
   }
 
   return userPrompt;
@@ -1110,13 +1092,6 @@ ANSWER: [תשובה מלאה]
 async function generateTorah() {
   if (!currentTopic) {
     showNotif('⚠️ בחר סוג דבר תורה תחילה');
-    return;
-  }
-
-  const apiKey = localStorage.getItem('anthropicKey') || document.getElementById('apiKeyInput').value.trim();
-  if (!apiKey) {
-    showNotif('⚠️ הכנס מפתח API');
-    document.getElementById('apiKeyInput').focus();
     return;
   }
 
@@ -1154,12 +1129,9 @@ async function generateTorah() {
 התאם את הרמה בדיוק לבקשה.
 הדברים צריכים להיות מרגשים, אמיתיים ומושרשים במקורות.`;
 
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const response = await fetch('/api/generate', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'llama-3.3-70b-versatile',
         messages: [
