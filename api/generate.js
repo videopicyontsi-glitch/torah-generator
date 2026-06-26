@@ -21,7 +21,7 @@ async function callAI(body) {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
         'HTTP-Referer': 'https://torah-generator.vercel.app',
-        'X-Title': 'מחולל דברי תורה'
+        'X-Title': 'Torah Generator'
       },
       body: JSON.stringify({ ...body, model })
     });
