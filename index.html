@@ -560,6 +560,7 @@
         <button class="level-btn active" data-level="קצר" onclick="setLevel('weekly',this)">💬 משהו בקטנה</button>
         <button class="level-btn" data-level="בינוני" onclick="setLevel('weekly',this)">📚 שיעור א׳</button>
         <button class="level-btn" data-level="מעמיק" onclick="setLevel('weekly',this)">🔬 בייניש רציני</button>
+        <button class="level-btn" data-level="דרשה" onclick="setLevel('weekly',this)">🎓 דרשה של רב</button>
       </div>
     </div>
 
@@ -594,6 +595,7 @@
         <button class="level-btn active" data-level="קצר" onclick="setLevel('event',this)">💬 משהו בקטנה</button>
         <button class="level-btn" data-level="בינוני" onclick="setLevel('event',this)">📚 שיעור א׳</button>
         <button class="level-btn" data-level="מעמיק" onclick="setLevel('event',this)">🔬 בייניש רציני</button>
+        <button class="level-btn" data-level="דרשה" onclick="setLevel('event',this)">🎓 דרשה של רב</button>
       </div>
     </div>
 
@@ -607,6 +609,7 @@
         <button class="level-btn active" data-level="קצר" onclick="setLevel('special',this)">💬 משהו בקטנה</button>
         <button class="level-btn" data-level="בינוני" onclick="setLevel('special',this)">📚 שיעור א׳</button>
         <button class="level-btn" data-level="מעמיק" onclick="setLevel('special',this)">🔬 בייניש רציני</button>
+        <button class="level-btn" data-level="דרשה" onclick="setLevel('special',this)">🎓 דרשה של רב</button>
       </div>
     </div>
 
@@ -1006,6 +1009,7 @@ function buildPrompt() {
     'קל': 'פשוט ונגיש לכל, עם דוגמאות קלות. 3-4 שאלות.',
     'בינוני': 'שיעור א׳ — 2-3 דקות. התחל ברעיון מרכזי ברור, הרחב עם ציטוט מקרא ודוגמה חיה, ואז הצג 2-3 שאלות למחשבה עם תשובות מפורטות לצד כל שאלה.',
     'מעמיק': 'מעמיק ומפורט — 5-7 דקות. עם מקורות, מדרש או גמרא, ניתוח ומסר ברור. בסוף: סיכום המהלך בנקודות (•) ומוסר השכל — לימוד לנו.',
+    'דרשה': `דרשה של רב — 8-12 דקות. מבנה: (1) פתיחה עם שאלה על הפרשה, (2) מהלך עם לפחות 3 מקורות מדויקים (גמרא/מדרש/ראשונים/אחרונים עם שם המקור), (3) פיתוח הרעיון שלב אחר שלב, (4) חידוש ייחודי, (5) סיום עם מסר מעשי. ציין מקורות בצורה: "כמו שאמרו חז"ל ב[מסכת פרק]" / "וכך כתב ה[שם הספר]". הדרשה צריכה להיות ראויה לאמירה בבית כנסת.`,
     'קשה': 'קשה ומאתגר, רמת גבוהה, דורש ידע נרחב. 8-12 שאלות.',
   };
 
@@ -1200,7 +1204,7 @@ function displayResult(text) {
   };
   document.getElementById('resultTag').textContent = tagMap[currentTopic] || 'דבר תורה';
 
-  const lvlMap = { קצר: 'משהו בקטנה', בינוני: "שיעור א'", מעמיק: 'בייניש רציני', קל: 'לילדים', קשה: 'למבוגרים' };
+  const lvlMap = { קצר: 'משהו בקטנה', בינוני: "שיעור א'", מעמיק: 'בייניש רציני', דרשה: 'דרשה של רב', קל: 'לילדים', קשה: 'למבוגרים' };
   document.getElementById('resultMeta').textContent =
     `רמה: ${lvlMap[currentLevel[currentTopic]] || currentLevel[currentTopic]}`;
 
