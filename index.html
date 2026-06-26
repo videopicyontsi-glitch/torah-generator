@@ -1076,10 +1076,10 @@ ${advContext}
   } else if (currentTopic === 'riddles') {
     const count = document.getElementById('riddleCount').value;
     const riddleStyle = document.getElementById('riddleStyle')?.value || '';
-    const isLogic = riddleStyle.includes('הגיון') || riddleStyle.includes('לוגי');
+    const isLogic = riddleStyle.includes('הגיון');
     const styleDesc = isLogic
-      ? 'חידות הגיון — לא ידע אלא חשיבה: פתרון מחייב היסק לוגי, לא ידע תנ"כי. ניתן לקחת סיפור מהפרשה כרקע ולבנות עליו חידת הגיון.'
-      : `חידות תנ"כיות — על דמויות, מספרים, מקומות, מילות מפתח בפרשה.`;
+      ? 'חידות חשיבה על הפרשה — לא ידע ישיר אלא הסקה: השאלה מבוססת על אירועי הפרשה אך הפתרון דורש חשיבה, השוואה, הבנת הקשר או סיבה ותוצאה. למשל: "מדוע לא יכל פלוני לעשות כך?" או "מה המשותף ל..." — לא שאלות ידע פשוטות.'
+      : `חידות ידע ישיר — על דמויות, מספרים, מקומות, מילות מפתח בפרשה.`;
     const attemptNote = riddleAttempt > 0
       ? `\nחשוב מאוד: זה ניסיון מספר ${riddleAttempt + 1}. תן חידות שונות לחלוטין — נושאים אחרים, דמויות אחרות, זוויות אחרות. אסור לחזור על חידה שכבר נשאלה.`
       : '';
