@@ -765,8 +765,22 @@
     </div>
     <div id="adminPanel" style="display:none">
       <p style="color:var(--gold);margin-bottom:16px">✅ מחובר כמנהל</p>
-      <p style="color:var(--muted);margin-bottom:8px">סה"כ דברי תורה שנשמרו: <strong id="adminCount" style="color:var(--text)">0</strong></p>
-      <button class="modal-send-btn" onclick="exportToExcel()">📊 הורד קובץ אקסל</button>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:18px;text-align:center">
+        <div style="background:rgba(200,168,75,0.1);border:1px solid rgba(200,168,75,0.3);border-radius:8px;padding:12px">
+          <div style="font-size:22px;font-weight:900;color:var(--gold)" id="statTotal">0</div>
+          <div style="font-size:11px;color:var(--muted)">סה"כ הופקו</div>
+        </div>
+        <div style="background:rgba(76,175,140,0.1);border:1px solid rgba(76,175,140,0.3);border-radius:8px;padding:12px">
+          <div style="font-size:22px;font-weight:900;color:#4caf8c" id="statLiked">0</div>
+          <div style="font-size:11px;color:var(--muted)">❤️ אהבו</div>
+        </div>
+        <div style="background:rgba(233,69,96,0.1);border:1px solid rgba(233,69,96,0.3);border-radius:8px;padding:12px">
+          <div style="font-size:22px;font-weight:900;color:var(--accent)" id="statNotLiked">0</div>
+          <div style="font-size:11px;color:var(--muted)">לא אהבו</div>
+        </div>
+      </div>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:14px">📲 אנשי קשר שקיבלו דבר תורה בוואטסאפ: <strong id="adminCount" style="color:var(--text)">0</strong></p>
+      <button class="modal-send-btn" onclick="exportToExcel()">📊 הורד אקסל (שמות וטלפונים)</button>
       <button class="modal-send-btn" style="margin-top:10px;background:rgba(233,69,96,0.2);border:1px solid var(--accent)" onclick="clearExportData()">🗑️ נקה נתונים</button>
     </div>
   </div>
@@ -869,7 +883,8 @@ let currentLevel = { weekly: 'קצר', event: 'קצר', special: 'קצר', summa
 let currentResult = '';
 let currentIdea = '';
 let likedCount = 0;
-let exportData = [];
+let exportData = []; // {name, phone, timestamp, topic}
+let statsData = { liked: 0, notLiked: 0, total: 0 };
 let currentParasha = null;
 
 // =========================================
@@ -1240,16 +1255,9 @@ function displayResult(text) {
   document.getElementById('resultCard').classList.add('show');
   document.getElementById('resultCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-  // Add to export data
-  exportData.push({
-    timestamp: new Date().toLocaleString('he-IL'),
-    topic: document.getElementById('resultTag').textContent,
-    parasha: currentParasha?.name || '',
-    level: currentLevel[currentTopic],
-    idea: currentIdea,
-    content: currentResult,
-    liked: false
-  });
+  // Track stats
+  statsData.total++;
+  statsData.notLiked++;
 }
 
 function toggleAnswer(idx) {
@@ -1266,7 +1274,8 @@ function handleLike() {
     btn.classList.add('btn-liked');
     btn.textContent = '💛 אהבתי!';
     likedCount++;
-    if (exportData.length > 0) exportData[exportData.length - 1].liked = true;
+    statsData.liked++;
+    statsData.notLiked = Math.max(0, statsData.notLiked - 1);
     document.getElementById('likedCount').textContent = `❤️ ${likedCount} דברי תורה שאהבת בסשן הזה`;
     showNotif('❤️ מצוין! נרשם בלב');
   }
@@ -1312,6 +1321,14 @@ function sendWhatsApp() {
     `נתנאל הזה — רעיונות גדולים לעסקים קטנים`
   );
 
+  // Save contact to export data
+  exportData.push({
+    שם: name || '(לא צוין)',
+    טלפון: '+' + phone,
+    תאריך: new Date().toLocaleString('he-IL'),
+    נושא: document.getElementById('resultTag')?.textContent || ''
+  });
+
   window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
   closeShareModal();
   showNotif('✅ פותח וואטסאפ...');
@@ -1319,24 +1336,12 @@ function sendWhatsApp() {
 
 function exportToExcel() {
   if (exportData.length === 0) {
-    showNotif('⚠️ אין עדיין דברי תורה לייצא');
+    showNotif('⚠️ לא נשלחו דברי תורה עדיין');
     return;
   }
 
-  const ws = XLSX.utils.json_to_sheet(exportData.map(d => ({
-    'תאריך ושעה': d.timestamp,
-    'נושא': d.topic,
-    'פרשה': d.parasha,
-    'רמה': d.level,
-    'רעיון מרכזי': d.idea,
-    'תוכן מלא': d.content,
-    'אהבתי': d.liked ? 'כן ❤️' : 'לא'
-  })));
-
-  ws['!cols'] = [
-    { wch: 20 }, { wch: 20 }, { wch: 15 }, { wch: 12 },
-    { wch: 40 }, { wch: 80 }, { wch: 10 }
-  ];
+  const ws = XLSX.utils.json_to_sheet(exportData);
+  ws['!cols'] = [{ wch: 20 }, { wch: 18 }, { wch: 22 }, { wch: 25 }];
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'דברי תורה');
@@ -1371,6 +1376,9 @@ function adminLogin() {
     document.getElementById('adminLoginSection').style.display = 'none';
     document.getElementById('adminPanel').style.display = 'block';
     document.getElementById('adminCount').textContent = exportData.length;
+    document.getElementById('statTotal').textContent = statsData.total;
+    document.getElementById('statLiked').textContent = statsData.liked;
+    document.getElementById('statNotLiked').textContent = statsData.notLiked;
   } else {
     showNotif('❌ שם משתמש או סיסמה שגויים');
   }
@@ -1379,7 +1387,11 @@ function adminLogin() {
 function clearExportData() {
   if (confirm('למחוק את כל הנתונים השמורים?')) {
     exportData = [];
+    statsData = { liked: 0, notLiked: 0, total: 0 };
     document.getElementById('adminCount').textContent = 0;
+    document.getElementById('statTotal').textContent = 0;
+    document.getElementById('statLiked').textContent = 0;
+    document.getElementById('statNotLiked').textContent = 0;
     showNotif('🗑️ הנתונים נמחקו');
   }
 }
